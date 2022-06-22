@@ -1,8 +1,17 @@
 import os
+import json
 import urllib3
 import requests
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+
+SEVERITY_DICT = {
+    'Unknown': 0,
+    'Low': 1,
+    'Medium': 2,
+    'High': 3,
+    'Critical': 4
+}
 
 ssl_verify = True
 
@@ -23,28 +32,28 @@ class demistoConnect:
         self.url = url
         self.api_key = api_key
         self.headers = {
-            "content-Type": "application/json",
+            "Content-Type": "application/json",
             "Accept": "application/json",
-            'Authorization': 'Bearer {}'.format(api_key)
+            'Authorization': api_key
                        }
 
     # Slack Command Methods
     @property
     def health(self):
         response_api = requests.get(self.url + "/health", headers=self.headers, verify=ssl_verify)
-        if response_api.status_code == 200:
-            return "ok"
+        return response_api.status_code
 
-    def create_incident(self,incident_type,incident_owner,incident_name):
+    def create_incident(self, incident_type, incident_owner, incident_name, incident_severity, incident_detail):
         data = {
             "type": incident_type,
             "name": incident_name,
+            "details": incident_detail,
+            "severity": incident_severity,
             "owner": incident_owner
             }
-        response_api = requests.post(self.url + "/incident", headers=self.headers, json=data, verify=ssl_verify)
-        print(response_api)
-        if response_api.status_code == 200:
-            return response_api.json()
+        response_api = requests.post(self.url + "/incident", headers=self.headers, data=json.dumps(data), verify=ssl_verify)
+        if response_api.status_code == 201:
+            return response_api.text
         else:
             return response_api.status_code
 
@@ -73,11 +82,21 @@ def run_command(command_text, url, api_key):
 
     # Slack Command Run Method
     if command_line[0] == "xsoar_health":
-        return demisto.health
+
+        if demisto.health == 200:
+            return_val = "XSOAR is Up!"
+        else:
+            return_val = "XSOAR may not be Up."
+        return return_val
+
     elif command_line[0] == "block_mac":
         incident = get_params(command_line)
-        print(incident['mac'])
-        return demisto.create_incident("Blackhat IOC Check", "sbrumley", "Block Mac " + incident['mac'])
+        return demisto.create_incident("Blackhat MAC", "sbrumley", "Block Mac " + incident['mac'],
+                                       SEVERITY_DICT['High'], "mac=" + incident['mac'])
+    elif command_line[0] == "qos_mac":
+        incident = get_params(command_line)
+        return demisto.create_incident("Blackhat Qos", "sbrumley", "Qos Mac " + incident['mac'],
+                                       SEVERITY_DICT['Low'], "mac=" + incident['mac'])
     else:
         return "Command Not Found!"
 
@@ -107,16 +126,7 @@ def event_test(body,say):
     if is_command(text):
         say(f"Your wish is my command, <@{user}>!")
         command_response = run_command(text,demisto_url,demisto_api_key)
-
-        # Slack Command Action
-        if text == "!xsoar_health":
-            if command_response == "ok":
-                say("XSOAR is Up!")
-            else:
-                say("XSOAR may not be Up.")
-        elif text == "!block_mac":
-            print(command_response)
-
+        say(command_response)
         """
         say({
             "channel": channel,
@@ -188,3 +198,4 @@ def event_test(body,say):
 
 if __name__ == "__main__":
     SocketModeHandler(app, app_token).start()
+
