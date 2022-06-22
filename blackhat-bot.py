@@ -22,14 +22,31 @@ class demistoConnect:
     def __init__(self, url, api_key):
         self.url = url
         self.api_key = api_key
-        self.headers = {'Authorization': 'Bearer {}'.format(api_key)}
+        self.headers = {
+            "content-Type": "application/json",
+            "Accept": "application/json",
+            'Authorization': 'Bearer {}'.format(api_key)
+                       }
 
     # Slack Command Methods
+    @property
     def health(self):
-        print(ssl_verify)
-        response_api = requests.get(self.url, headers=self.headers, verify=ssl_verify)
+        response_api = requests.get(self.url + "/health", headers=self.headers, verify=ssl_verify)
         if response_api.status_code == 200:
             return "ok"
+
+    def create_incident(self,incident_type,incident_owner,incident_name):
+        data = {
+            "type": incident_type,
+            "name": incident_name,
+            "owner": incident_owner
+            }
+        response_api = requests.post(self.url + "/incident", headers=self.headers, json=data, verify=ssl_verify)
+        print(response_api)
+        if response_api.status_code == 200:
+            return response_api.json()
+        else:
+            return response_api.status_code
 
 
 def is_command(textmessage):
@@ -40,13 +57,27 @@ def is_command(textmessage):
         return False
 
 
+def get_params(param_list):
+    param_dict = {}
+    for param in param_list:
+        if "=" in param:
+            key_val_pair = param.split("=")
+            param_dict[key_val_pair[0]] = key_val_pair[1]
+    return param_dict
+
+
 def run_command(command_text, url, api_key):
     demisto = demistoConnect(url,api_key)
     command_text = command_text.strip().replace('!', '')
+    command_line = command_text.split(" ")
 
     # Slack Command Run Method
-    if command_text == "xsoar_health":
-        return demisto.health()
+    if command_line[0] == "xsoar_health":
+        return demisto.health
+    elif command_line[0] == "block_mac":
+        incident = get_params(command_line)
+        print(incident['mac'])
+        return demisto.create_incident("Blackhat IOC Check", "sbrumley", "Block Mac " + incident['mac'])
     else:
         return "Command Not Found!"
 
@@ -83,6 +114,8 @@ def event_test(body,say):
                 say("XSOAR is Up!")
             else:
                 say("XSOAR may not be Up.")
+        elif text == "!block_mac":
+            print(command_response)
 
         """
         say({
