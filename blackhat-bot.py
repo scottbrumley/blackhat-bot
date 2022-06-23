@@ -27,6 +27,28 @@ demisto_api_key = os.environ.get("DEMISTO_API_KEY")
 app = App(token=bot_token)
 
 
+def human_date_time(date_time_str):
+    # Get Date
+    date_time = date_time_str.split("T")
+    date_str = str(date_time[0])
+
+    # Get Time
+    if "-"  in date_time[1]:
+        time_zone = date_time[1].split("-")
+    elif "+" in date_time[1]:
+        time_zone = date_time[1].split("+")
+
+    time_str = str(time_zone[0])
+
+    # Get Time Zone
+    get_zone = date_time[1].split(time_str)
+    zone_str = str(get_zone[1])
+
+    new_time = date_str + " " + time_str.split(".")[0] + " TZ= " + zone_str
+
+    return new_time
+
+
 class demistoConnect:
     def __init__(self, url, api_key):
         self.url = url
@@ -75,7 +97,11 @@ def get_params(param_list):
     return param_dict
 
 
-def run_command(command_text, url, api_key):
+def return_dict(json_string):
+    return json.loads(json_string)
+
+
+def run_command(command_text, url, api_key, channel, user):
     demisto = demistoConnect(url,api_key)
     command_text = command_text.strip().replace('!', '')
     command_line = command_text.split(" ")
@@ -91,12 +117,122 @@ def run_command(command_text, url, api_key):
 
     elif command_line[0] == "block_mac":
         incident = get_params(command_line)
-        return demisto.create_incident("Blackhat MAC", "sbrumley", "Block Mac " + incident['mac'],
+        incident_json = demisto.create_incident("Blackhat MAC", "sbrumley", "Block Mac " + incident['mac'],
                                        SEVERITY_DICT['High'], "mac=" + incident['mac'])
+        incident_dict = return_dict(incident_json)
+        incident_link = f"{demisto_url}/#/Details/{str(incident_dict['id'])}"
+        print(incident_link)
+        json_string = {
+            "channel": channel,
+            "text": f"New Incident created by <@{user}>",
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "New XSOAR Incident #" + incident_dict['id'],
+                        "emoji": True
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Type:*\n" + incident_dict['type']
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Created by:*\n<@{user}>"
+                        }
+                    ]
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "block_id": "actionblock789",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "action_id": "openincident",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Open Incident"
+                            },
+                            "url": incident_link
+                        }
+                    ]
+                }
+            ]
+        }
+        return json_string
     elif command_line[0] == "qos_mac":
         incident = get_params(command_line)
-        return demisto.create_incident("Blackhat Qos", "sbrumley", "Qos Mac " + incident['mac'],
+        incident_json = demisto.create_incident("Blackhat Qos", "sbrumley", "Qos Mac " + incident['mac'],
                                        SEVERITY_DICT['Low'], "mac=" + incident['mac'])
+        incident_dict = return_dict(incident_json)
+        incident_link = f"{demisto_url}/#/Details/{str(incident_dict['id'])}"
+        print(incident_link)
+        json_string = {
+            "channel": channel,
+            "text": f"New Incident created by <@{user}>",
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "New XSOAR Incident #" + incident_dict['id'],
+                        "emoji": True
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Type:*\n" + incident_dict['type']
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Created by:*\n<@{user}>"
+                        }
+                    ]
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "block_id": "actionblock789",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "action_id": "openincident",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Open Incident"
+                            },
+                            "url": incident_link
+                        }
+                    ]
+                }
+            ]
+        }
+        return json_string
     else:
         return "Command Not Found!"
 
@@ -105,6 +241,18 @@ def run_command(command_text, url, api_key):
 def approve_request(ack,say):
     ack()
     say("Request approved!")
+
+
+@app.action("openincident")
+def approve_request(ack,say):
+    ack()
+    say("Opening Incident!")
+
+
+@app.action("actionblock789")
+def approve_request(ack,say):
+    ack()
+    say("Opening Incident!")
 
 
 @app.action("rejection_button")
@@ -125,73 +273,8 @@ def event_test(body,say):
 
     if is_command(text):
         say(f"Your wish is my command, <@{user}>!")
-        command_response = run_command(text,demisto_url,demisto_api_key)
+        command_response = run_command(text,demisto_url,demisto_api_key, channel, user)
         say(command_response)
-        """
-        say({
-            "channel": channel,
-            "text": "New Paid Time Off request from Fred Enriquez",
-            "blocks": [
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "New request",
-                        "emoji": True
-                    }
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "*Type:*\nPaid Time Off"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "*Created by:*\n<example.com|Fred Enriquez>"
-                        }
-                    ]
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "*When:*\nAug 10 - Aug 13"
-                        }
-                    ]
-                },
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "action_id": "approve_button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Approve"
-                            },
-                            "style": "primary",
-                            "value": "click_me_123"
-                        },
-                        {
-                            "type": "button",
-                            "action_id": "rejection_button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Reject"
-                            },
-                            "style": "danger",
-                            "value": "click_me_123"
-                        }
-                    ]
-                }
-            ]
-        })
-        """
     else:
         say(f"Hi there, <@{user}>!")
 
