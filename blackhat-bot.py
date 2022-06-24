@@ -1,6 +1,7 @@
 import os
 import json
 import urllib3
+from requests.utils import requote_uri
 import requests
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -120,8 +121,9 @@ def run_command(command_text, url, api_key, channel, user):
         incident_json = demisto.create_incident("Blackhat MAC", "sbrumley", "Block Mac " + incident['mac'],
                                        SEVERITY_DICT['High'], "mac=" + incident['mac'])
         incident_dict = return_dict(incident_json)
-        incident_link = f"{demisto_url}/#/Details/{str(incident_dict['id'])}"
-        print(incident_link)
+        incident_id = str(incident_dict['id']).strip()
+        incident_link = demisto_url + "/#/Details/" + incident_id
+        print("dd" + incident_link + "dd")
         json_string = {
             "channel": channel,
             "text": f"New Incident created by <@{user}>",
