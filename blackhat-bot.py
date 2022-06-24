@@ -239,6 +239,12 @@ def run_command(command_text, url, api_key, channel, user):
         return "Command Not Found!"
 
 
+@app.event("team_join")
+def ask_for_introduction(event, say):
+    user_id = event['user']
+    text = f"Welcome to the team, <@{user_id}>!"
+    say(text=text)
+
 @app.action("approve_button")
 def approve_request(ack,say):
     ack()
