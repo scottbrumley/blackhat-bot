@@ -102,7 +102,7 @@ def return_dict(json_string):
     return json.loads(json_string)
 
 
-def run_command(command_text, url, api_key, channel, user):
+def run_command(command_text, url, api_key, channel, user, bot_handle):
     demisto = demistoConnect(url,api_key)
     command_text = command_text.strip().replace('!', '')
     command_line = command_text.split(" ")
@@ -119,7 +119,8 @@ def run_command(command_text, url, api_key, channel, user):
     elif command_line[0] == "block_mac":
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat MAC", "sbrumley", "Block Mac " + incident['mac'],
-                                       SEVERITY_DICT['High'], "mac=" + incident['mac'])
+                                       SEVERITY_DICT['High'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
+                                                "\nbot_handle=" + bot_handle)
         incident_dict = return_dict(incident_json)
         incident_id = str(incident_dict['id']).strip()
         incident_link = demisto_url + "/#/Details/" + incident_id
@@ -179,7 +180,8 @@ def run_command(command_text, url, api_key, channel, user):
     elif command_line[0] == "qos_mac":
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat Qos", "sbrumley", "Qos Mac " + incident['mac'],
-                                       SEVERITY_DICT['Low'], "mac=" + incident['mac'])
+                                       SEVERITY_DICT['Low'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
+                                                "\nbot_handle=" + bot_handle)
         incident_dict = return_dict(incident_json)
         incident_link = f"{demisto_url}/#/Details/{str(incident_dict['id'])}"
         print(incident_link)
@@ -235,6 +237,39 @@ def run_command(command_text, url, api_key, channel, user):
             ]
         }
         return json_string
+    elif command_line[0] == "help":
+        json_string = {
+            "channel": channel,
+            "text": f"List of Commands",
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "List of Commands",
+                        "emoji": True
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Command:*\n" +
+                                    "!block_mac mac=MAC Address\n" +
+                                    "!qos_mac mac=MAC Address"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Description:*\n" +
+                                    "Block by MAC in Firewalls\n" +
+                                    "Set QoS by MAC in Firewalls\n"
+                        }
+                    ]
+                }
+            ]
+        }
+        return json_string
     else:
         return "Command Not Found!"
 
@@ -244,6 +279,7 @@ def ask_for_introduction(event, say):
     user_id = event['user']
     text = f"Welcome to the team, <@{user_id}>!"
     say(text=text)
+
 
 @app.action("approve_button")
 def approve_request(ack,say):
@@ -281,10 +317,10 @@ def event_test(body,say):
 
     if is_command(text):
         say(f"Your wish is my command, <@{user}>!")
-        command_response = run_command(text,demisto_url,demisto_api_key, channel, user)
+        command_response = run_command(text,demisto_url,demisto_api_key, channel, user, bot_handle)
         say(command_response)
     else:
-        say(f"Hi there, <@{user}>!")
+        say(f"Hi there, <@{user}>!\n  If you need help use the !help command.")
 
 
 if __name__ == "__main__":
