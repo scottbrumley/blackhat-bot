@@ -125,7 +125,7 @@ def return_dict(json_string):
 def build_command_string():
     my_commands = ""
     for command in command_list:
-        my_commands = my_commands + "!" + command_list[command]['cmd'] + " " + command_list[command]['args'] + "\n"
+        my_commands = my_commands + "!" + command_list[command]['cmd'] + " " + command_list[command]['args'] + "\n\n"
     return my_commands
 
 
