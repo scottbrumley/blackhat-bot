@@ -1,7 +1,6 @@
 import os
 import json
 import urllib3
-from requests.utils import requote_uri
 import requests
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -27,21 +26,29 @@ demisto_api_key = os.environ.get("DEMISTO_API_KEY")
 
 app = App(token=bot_token)
 
-command_list = {"block_mac":
+command_list = {
+    "block_mac":
     {
         "cmd": "block_mac",
         "args": "mac=MAC Address",
         "description": "Block by MAC in Firewalls\n"
     },
     "qos_mac":
+    {
+        "cmd": "qos_mac",
+        "args": "mac=MAC Address",
+        "description": "Set QoS by MAC in Firewalls\n"
+    },
+    "my_incidents":
         {
-            "cmd": "qos_mac",
-            "args": "mac=MAC Address",
-            "description": "Set QoS by MAC in Firewalls\n"
+            "cmd": "my_incidents",
+            "args": "",
+            "description": "List Your Incidents\n"
         }
 }
 
 def human_date_time(date_time_str):
+    time_zone = ""
     # Get Date
     date_time = date_time_str.split("T")
     date_str = str(date_time[0])
@@ -95,7 +102,7 @@ class demistoConnect:
 
     def search_incident(self, data):
         response_api = requests.post(self.url + "/incidents/search", headers=self.headers, data=json.dumps(data), verify=ssl_verify)
-        if response_api.status_code == 201:
+        if response_api.status_code == 200:
             return response_api.text
         else:
             return response_api.status_code
@@ -218,7 +225,6 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
                                                 "\nbot_handle=" + bot_handle)
         incident_dict = return_dict(incident_json)
         incident_link = f"{demisto_url}/#/Details/{str(incident_dict['id'])}"
-        print(incident_link)
         json_string = {
             "channel": channel,
             "text": f"New Incident created by <@{user}>",
@@ -271,6 +277,21 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
             ]
         }
         return json_string
+    elif command_line[0] == command_list["my_incidents"]['cmd']:
+        search_str = {
+            "filter": {
+                "query": f"-status:closed -category:job details:\"*slack_handle={user}*\""
+            }
+        }
+        incident_json = demisto.search_incident(search_str)
+        incident_dict = return_dict(incident_json)
+        return_str = ""
+
+        for incident in incident_dict['data']:
+            incident_link = f"#{incident['id']} - {incident['name']}\n{demisto_url}/#/Details/{str(incident['id'])}\n"
+            return_str = return_str + incident_link
+
+        return return_str
     elif command_line[0] == "help":
         json_string = {
             "channel": channel,
