@@ -27,6 +27,19 @@ demisto_api_key = os.environ.get("DEMISTO_API_KEY")
 
 app = App(token=bot_token)
 
+command_list = {"block_mac":
+    {
+        "cmd": "block_mac",
+        "args": "mac=MAC Address",
+        "description": "Block by MAC in Firewalls\n"
+    },
+    "qos_mac":
+        {
+            "cmd": "qos_mac",
+            "args": "mac=MAC Address",
+            "description": "Set QoS by MAC in Firewalls\n"
+        }
+}
 
 def human_date_time(date_time_str):
     # Get Date
@@ -80,6 +93,13 @@ class demistoConnect:
         else:
             return response_api.status_code
 
+    def search_incident(self, data):
+        response_api = requests.post(self.url + "/incidents/search", headers=self.headers, data=json.dumps(data), verify=ssl_verify)
+        if response_api.status_code == 201:
+            return response_api.text
+        else:
+            return response_api.status_code
+
 
 def is_command(textmessage):
     textmessage = textmessage.strip()
@@ -102,6 +122,20 @@ def return_dict(json_string):
     return json.loads(json_string)
 
 
+def build_command_string():
+    my_commands = ""
+    for command in command_list:
+        my_commands = my_commands + "!" + command_list[command]['cmd'] + " " + command_list[command]['args'] + "\n"
+    return my_commands
+
+
+def build_description_string():
+    my_args = ""
+    for command in command_list:
+        my_args = my_args + command_list[command]['description'] + "\n"
+    return my_args
+
+
 def run_command(command_text, url, api_key, channel, user, bot_handle):
     demisto = demistoConnect(url,api_key)
     command_text = command_text.strip().replace('!', '')
@@ -116,7 +150,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
             return_val = "XSOAR may not be Up."
         return return_val
 
-    elif command_line[0] == "block_mac":
+    elif command_line[0] == command_list["block_mac"]['cmd']:
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat MAC", "sbrumley", "Block Mac " + incident['mac'],
                                        SEVERITY_DICT['High'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
@@ -177,7 +211,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
             ]
         }
         return json_string
-    elif command_line[0] == "qos_mac":
+    elif command_line[0] == command_list["qos_mac"]['cmd']:
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat Qos", "sbrumley", "Qos Mac " + incident['mac'],
                                        SEVERITY_DICT['Low'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
@@ -255,20 +289,17 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
                     "fields": [
                         {
                             "type": "mrkdwn",
-                            "text": "*Command:*\n" +
-                                    "!block_mac mac=MAC Address\n" +
-                                    "!qos_mac mac=MAC Address"
+                            "text": "*Command:*\n" + build_command_string()
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Description:*\n" +
-                                    "Block by MAC in Firewalls\n" +
-                                    "Set QoS by MAC in Firewalls\n"
+                            "text": f"*Description:*\n" + build_description_string()
                         }
                     ]
                 }
             ]
         }
+
         return json_string
     else:
         return "Command Not Found!"
