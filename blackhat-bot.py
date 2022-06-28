@@ -161,7 +161,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat MAC", "sbrumley", "Block Mac " + incident['mac'],
                                        SEVERITY_DICT['High'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
-                                                "\nbot_handle=" + bot_handle)
+                                                "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
         incident_id = str(incident_dict['id']).strip()
         incident_link = demisto_url + "/#/Details/" + incident_id
@@ -222,7 +222,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat Qos", "sbrumley", "Qos Mac " + incident['mac'],
                                        SEVERITY_DICT['Low'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
-                                                "\nbot_handle=" + bot_handle)
+                                                "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
         incident_link = f"{demisto_url}/#/Details/{str(incident_dict['id'])}"
         json_string = {
