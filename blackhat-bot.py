@@ -47,6 +47,7 @@ command_list = {
         }
 }
 
+
 def human_date_time(date_time_str):
     time_zone = ""
     # Get Date
@@ -357,6 +358,11 @@ def approve_request(ack,say):
     say("Request rejected!")
 
 
+@app.event("message")
+def handle_message_events(body, logger):
+    logger.info(body)
+
+
 @app.event("app_mention")
 def event_test(body,say):
     user = body['event']['user']
@@ -364,8 +370,7 @@ def event_test(body,say):
     channel = body['event']['channel']
     bot_handle = body['authorizations'][0]['user_id']
     text = text.replace(f"<@{bot_handle}>", "")  # Remove the bot handle from
-
-    print('Bot = ' + bot_handle + ' Channel=' + channel + ' Text=' + text + ' from User=' + user)
+    # print('Bot = ' + bot_handle + ' Channel=' + channel + ' Text=' + text + ' from User=' + user)
 
     if is_command(text):
         say(f"Your wish is my command, <@{user}>!")
