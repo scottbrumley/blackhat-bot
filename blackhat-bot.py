@@ -289,7 +289,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
         return_str = ""
 
         for incident in incident_dict['data']:
-            incident_link = f"#{incident['id']} - {incident['name']}\n{demisto_url}/#/Details/{str(incident['id'])}\n"
+            incident_link = f"#{incident['id']} - {incident['name']}\n{demisto_url}:443/#/WarRoom/{str(incident['id'])}\n"
             return_str = return_str + incident_link
 
         return return_str
