@@ -42,8 +42,9 @@ command_list = {
     "check_ioc":
         {
             "cmd": "check_ioc",
-            "args": "url=<list of urls>,\n\t\t\t\t\tip=<list of IPs>,\n\t\t\t\t\tdomain=<list of domains>",
-            "description": "Check & Enrich IOCs\n\n\n\n\n\n"
+            "args": "url=<list of urls>,\n\t\t\t\t\tip=<list of IPs>,\n\t\t\t\t\temail=<list of emails>,"
+                    "\n\t\t\t\t\tdomain=<list of domains>",
+            "description": "Check & Enrich IOCs\n\n\n\n\n\n\n\n"
         },
     "my_incidents":
         {
@@ -75,6 +76,45 @@ def human_date_time(date_time_str):
     new_time = date_str + " " + time_str.split(".")[0] + " TZ= " + zone_str
 
     return new_time
+
+
+def clean_urls(url_str):
+    ret_str = ""
+    i = 0
+    val_list = url_str.split(",")
+    for val in val_list:
+        i = i + 1
+        domain_str = val.split("|")
+        ret_str = ret_str + domain_str[0].replace("<", "")
+        if i < len(val_list):
+            ret_str = ret_str + ","
+    return ret_str
+
+
+def clean_domains(dom_str):
+    ret_str = ""
+    i = 0
+    val_list = dom_str.split(",")
+    for val in val_list:
+        i = i + 1
+        domain_str = val.split("|")
+        ret_str = ret_str + domain_str[1].replace(">", "")
+        if i < len(val_list):
+            ret_str = ret_str + ","
+    return ret_str
+
+
+def clean_emails(email_str):
+    ret_str = ""
+    i = 0
+    val_list = email_str.split(",")
+    for val in val_list:
+        i = i + 1
+        domain_str = val.split("|")
+        ret_str = ret_str + domain_str[1].replace(">", "")
+        if i < len(val_list):
+            ret_str = ret_str + ","
+    return ret_str
 
 
 class demistoConnect:
@@ -163,7 +203,6 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
         else:
             return_val = "XSOAR may not be Up."
         return return_val
-
     elif command_line[0] == command_list["block_mac"]['cmd']:
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat MAC", "sbrumley", "Block Mac " + incident['mac'],
@@ -286,16 +325,22 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
         return json_string
     elif command_line[0] == command_list["check_ioc"]['cmd']:
         incident = get_params(command_line)
+        print(command_line)
         incident_details = ""
         if "url" in incident:
-            incident_details = incident_details + "url=" + incident['url'] + "\n"
+            url_list = clean_urls(incident['url'])
+            incident_details = incident_details + "url=" + url_list + "\n"
         if "domain" in incident:
-            incident_details = incident_details + "domain=" + incident['domain'] + "\n"
+            dom_list = clean_domains(incident['domain'])
+            incident_details = incident_details + "domain=" + dom_list + "\n"
         if "ip" in incident:
             incident_details = incident_details + "ip=" + incident['ip'] + "\n"
+        if "email" in incident:
+            email_list = clean_emails(incident['email'])
+            incident_details = incident_details + email_list + "\n"
 
         if incident_details:
-            incident_json = demisto.create_incident("Blackhat IOC Check", "sbrumley", "Enrich IOC " + incident_details,
+            incident_json = demisto.create_incident("Blackhat IOC Check", "sbrumley", "Enrich IOC " + incident_details[0:10],
                                                     SEVERITY_DICT['Low'],
                                                     incident_details +
                                                     "slack_handle=" + user +
