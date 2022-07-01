@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import urllib3
 import requests
@@ -51,6 +52,12 @@ command_list = {
             "cmd": "my_incidents",
             "args": "",
             "description": "List Your Incidents\n"
+        },
+    "xsoar_invite":
+        {
+            "cmd": "xsoar_invite",
+            "args": "email=<preferred email address>",
+            "description": "Get sent an invite to use XSOAR for Case Management and Automation.\n"
         }
 }
 
@@ -76,6 +83,15 @@ def human_date_time(date_time_str):
     new_time = date_str + " " + time_str.split(".")[0] + " TZ= " + zone_str
 
     return new_time
+
+
+def is_email(email):
+    regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    if(re.fullmatch(regex, email)):
+        return True
+
+    else:
+        return False
 
 
 def clean_urls(url_str):
@@ -108,12 +124,19 @@ def clean_emails(email_str):
     ret_str = ""
     i = 0
     val_list = email_str.split(",")
-    for val in val_list:
-        i = i + 1
-        domain_str = val.split("|")
-        ret_str = ret_str + domain_str[1].replace(">", "")
-        if i < len(val_list):
-            ret_str = ret_str + ","
+
+    if val_list == -1:
+        domain_str = email_str.split("|")
+        email_str = ret_str + domain_str[1].replace(">", "")
+        if is_email(email_str):
+            ret_str = email_str
+    else:
+        for val in val_list:
+            i = i + 1
+            domain_str = val.split("|")
+            ret_str = ret_str + domain_str[1].replace(">", "")
+            if i < len(val_list) and is_email(ret_str):
+                ret_str = ret_str + ","
     return ret_str
 
 
@@ -325,7 +348,6 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
         return json_string
     elif command_line[0] == command_list["check_ioc"]['cmd']:
         incident = get_params(command_line)
-        print(command_line)
         incident_details = ""
         if "url" in incident:
             url_list = clean_urls(incident['url'])
@@ -340,7 +362,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
             incident_details = incident_details + email_list + "\n"
 
         if incident_details:
-            incident_json = demisto.create_incident("Blackhat IOC Check", "sbrumley", "Enrich IOC " + incident_details[0:10],
+            incident_json = demisto.create_incident("Blackhat IOC Check", "sbrumley", "Enrich IOC " + incident_details[0:20],
                                                     SEVERITY_DICT['Low'],
                                                     incident_details +
                                                     "slack_handle=" + user +
@@ -416,6 +438,72 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
             return_str = return_str + incident_link
 
         return return_str
+    elif command_line[0] == command_list["xsoar_invite"]['cmd']:
+        incident = get_params(command_line)
+        incident_details = ""
+        if "email" in incident:
+            email_list = clean_emails(incident['email'])
+            incident_details = incident_details + email_list + "\n"
+        incident_json = demisto.create_incident("Blackhat XSOAR Invite", "", "XSOAR Invite " + incident_details[0:20],
+                                                SEVERITY_DICT['Low'],
+                                                incident_details +
+                                                "slack_handle=" + user +
+                                                "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
+        incident_dict = return_dict(incident_json)
+        incident_id = str(incident_dict['id']).strip()
+        incident_link = demisto_url + "/#/Details/" + incident_id
+        json_string = {
+            "channel": channel,
+            "text": f"New Incident created by <@{user}>",
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "New XSOAR Incident #" + incident_dict['id'],
+                        "emoji": True
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Type:*\n" + incident_dict['type']
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Created by:*\n<@{user}>"
+                        }
+                    ]
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "block_id": "actionblock789",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "action_id": "openincident",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Open Incident"
+                            },
+                            "url": incident_link
+                        }
+                    ]
+                }
+            ]
+        }
+        return json_string
     elif command_line[0] == "help":
         json_string = {
             "channel": channel,
