@@ -140,7 +140,7 @@ def clean_emails(email_str):
     return ret_str
 
 
-class demistoConnect:
+class DemistoConnect:
     def __init__(self, url, api_key):
         self.url = url
         self.api_key = api_key
@@ -153,8 +153,13 @@ class demistoConnect:
     # Slack Command Methods
     @property
     def health(self):
-        response_api = requests.get(self.url + "/health", headers=self.headers, verify=ssl_verify)
-        return response_api.status_code
+        try:
+            response_api = requests.get(self.url + "/health", headers=self.headers, verify=ssl_verify)
+        except Exception as e:
+            print("Error Occurred. " + str(e.args))
+            return str(e.args)
+        else:
+            return response_api.status_code
 
     def create_incident(self, incident_type, incident_owner, incident_name, incident_severity, incident_detail):
         data = {
@@ -164,18 +169,28 @@ class demistoConnect:
             "severity": incident_severity,
             "owner": incident_owner
             }
-        response_api = requests.post(self.url + "/incident", headers=self.headers, data=json.dumps(data), verify=ssl_verify)
-        if response_api.status_code == 201:
-            return response_api.text
+        try:
+            response_api = requests.post(self.url + "/incident", headers=self.headers, data=json.dumps(data), verify=ssl_verify)
+        except Exception as e:
+            print("Error Occurred. " + str(e.args))
+            return str(e.args)
         else:
-            return response_api.status_code
+            if response_api.status_code == 201:
+                return response_api.text
+            else:
+                return response_api.status_code
 
     def search_incident(self, data):
-        response_api = requests.post(self.url + "/incidents/search", headers=self.headers, data=json.dumps(data), verify=ssl_verify)
-        if response_api.status_code == 200:
-            return response_api.text
+        try:
+            response_api = requests.post(self.url + "/incidents/search", headers=self.headers, data=json.dumps(data), verify=ssl_verify)
+        except Exception as e:
+            print("Error Occurred. " + str(e.args))
+            return str(e.args)
         else:
-            return response_api.status_code
+            if response_api.status_code == 200:
+                return response_api.text
+            else:
+                return response_api.status_code
 
 
 def is_command(textmessage):
@@ -214,27 +229,27 @@ def build_description_string():
 
 
 def run_command(command_text, url, api_key, channel, user, bot_handle):
-    demisto = demistoConnect(url,api_key)
+    demisto = DemistoConnect(url,api_key)
     command_text = command_text.strip().replace('!', '')
     command_line = command_text.split(" ")
 
     # Slack Command Run Method
     if command_line[0] == "xsoar_health":
 
-        if demisto.health == 200:
+        demisto_val = demisto.health
+        if demisto_val == 200:
             return_val = "XSOAR is Up!"
         else:
-            return_val = "XSOAR may not be Up."
+            return_val = "XSOAR may not be Up. " + demisto_val
         return return_val
     elif command_line[0] == command_list["block_mac"]['cmd']:
         incident = get_params(command_line)
-        incident_json = demisto.create_incident("Blackhat MAC", "sbrumley", "Block Mac " + incident['mac'],
+        incident_json = demisto.create_incident("Blackhat MAC", "", "Block Mac " + incident['mac'],
                                        SEVERITY_DICT['High'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
                                                 "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
         incident_id = str(incident_dict['id']).strip()
         incident_link = demisto_url + "/#/Details/" + incident_id
-        print("dd" + incident_link + "dd")
         json_string = {
             "channel": channel,
             "text": f"New Incident created by <@{user}>",
@@ -289,7 +304,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
         return json_string
     elif command_line[0] == command_list["qos_mac"]['cmd']:
         incident = get_params(command_line)
-        incident_json = demisto.create_incident("Blackhat Qos", "sbrumley", "Qos Mac " + incident['mac'],
+        incident_json = demisto.create_incident("Blackhat Qos", "", "Qos Mac " + incident['mac'],
                                        SEVERITY_DICT['Low'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
                                                 "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
@@ -362,7 +377,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
             incident_details = incident_details + email_list + "\n"
 
         if incident_details:
-            incident_json = demisto.create_incident("Blackhat IOC Check", "sbrumley", "Enrich IOC " + incident_details[0:20],
+            incident_json = demisto.create_incident("Blackhat IOC Check", "", "Enrich IOC " + incident_details[0:20],
                                                     SEVERITY_DICT['Low'],
                                                     incident_details +
                                                     "slack_handle=" + user +
@@ -592,5 +607,8 @@ def event_test(body,say):
 
 
 if __name__ == "__main__":
-    SocketModeHandler(app, app_token).start()
-
+    try:
+        SocketModeHandler(app, app_token).start()
+    except Exception as e:
+        print("Error Occurred. " + str(e.args))
+        print(str(e.args))

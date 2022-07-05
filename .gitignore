@@ -5,3 +5,4 @@ private
 venv
 *.iml
 test/xsoar-slack.py
+/test/.pytest_cache/
