@@ -28,6 +28,12 @@ demisto_api_key = os.environ.get("DEMISTO_API_KEY")
 app = App(token=bot_token)
 
 command_list = {
+    "xsoar_health":
+        {
+            "cmd": "xsoar_health",
+            "args": "",
+            "description": "Check That XSOAR is Up.\n"
+        },
     "block_mac":
     {
         "cmd": "block_mac",
@@ -234,7 +240,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
     command_line = command_text.split(" ")
 
     # Slack Command Run Method
-    if command_line[0] == "xsoar_health":
+    if command_line[0] == command_list["xsoar_health"]['cmd']:
 
         demisto_val = demisto.health
         if demisto_val == 200:

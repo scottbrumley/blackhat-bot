@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-sudo docker stop blackhat
-sudo docker rm blackhat
+docker stop blackhat
+docker rm blackhat
