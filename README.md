@@ -1,4 +1,5 @@
-Credentials File:
+Credentials File (private/creds.sh):
+Create a File in a private sub directory called creds.sh
 ```#!/usr/bin/env bash
    
    BOT_TOKEN="YOUR BOT KEY HERE"
