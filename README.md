@@ -1,3 +1,12 @@
+# Black Hat Bot
+
+## Scripts Folder  
+* **build.sh** - Build the Docker container
+* **settings.sh** - Set the environment variables (i.e. Slack API Key, XSOAR API Key, etc.)
+* **slackbot-manifest** - The manifest to put in Slack when creating your Application
+* **start.sh** - Start Bot the Docker container
+* **stop.sh** - Stop and Destroy the Bot Docker container
+
 Credentials File (private/creds.sh):
 Create a File in a private sub directory called creds.sh
 ```#!/usr/bin/env bash
