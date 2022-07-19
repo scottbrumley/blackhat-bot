@@ -4,10 +4,10 @@ RUN apk --update add --no-cache --virtual .build-dependencies python3-dev build-
 && pip install --no-cache-dir -r requirements.txt \
 && apk del .build-dependencies
 RUN mkdir -p /usr/src/app/test
-WORKDIR /usr/src/app/test
 ADD blackhat-bot.py /usr/src/app
-ADD ./scripts/test-bot.py /usr/src/app/test
-CMD [ "python", "./test-bot.py" ]
+COPY test/test-blackhat-bot.py /usr/src/app/test
+WORKDIR /usr/src/app/test
+CMD [ "python", "./test-blackhat-bot.py" ]
 
 
 FROM python:alpine3.16 as production-env
