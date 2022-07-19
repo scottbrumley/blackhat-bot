@@ -7,7 +7,7 @@
 * **start.sh** - Start Bot the Docker container
 * **stop.sh** - Stop and Destroy the Bot Docker container
 
-Credentials File (private/creds.sh):
+## Credentials File (private/creds.sh):
 Create a File in a private sub directory called creds.sh
 ```#!/usr/bin/env bash
    
