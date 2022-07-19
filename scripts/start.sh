@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+source $(pwd)/scripts/settings.sh
 
+echo "Starting Container ${product_container_name} from Image ${product_version}"
 if [ $# -eq 0 ]
   then
     echo "No arguments supplied"
@@ -35,4 +37,4 @@ bot_token=$2
 demisto_url=$3
 demisto_api_key=$4
 
-docker run -dit --restart always --name blackhat -e "VERIFY_SSL=False" -e "SLACK_BOT_TOKEN=$2" -e "SLACK_APP_TOKEN=$1" -e "DEMISTO_URL=$3" -e "DEMISTO_API_KEY=$4" sbrumley/blackhat:0.9
+docker run -dit --restart always --name ${product_container_name} -e "VERIFY_SSL=False" -e "SLACK_BOT_TOKEN=$2" -e "SLACK_APP_TOKEN=$1" -e "DEMISTO_URL=$3" -e "DEMISTO_API_KEY=$4" ${product_version}
