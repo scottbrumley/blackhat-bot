@@ -45,7 +45,7 @@ if [[ "$1" = "prod" ]]; then
     demisto_url=$3
     demisto_api_key=$4
 
-    docker run -dit --restart always --name ${product_container_name} -e "VERIFY_SSL=${production_ssl_verify}" -e "SLACK_BOT_TOKEN=${BOT_TOKEN}" -e "SLACK_APP_TOKEN=${APP_TOKEN}" -e "DEMISTO_URL=$3" -e "DEMISTO_API_KEY=$4" ${product_version}
+    docker run -dit --restart always --name ${product_container_name} -e "VERIFY_SSL=${production_ssl_verify}" -e "SLACK_BOT_TOKEN=${BOT_TOKEN}" -e "SLACK_APP_TOKEN=${APP_TOKEN}" -e "DEMISTO_URL=${DEMISTO_UR}" -e "DEMISTO_API_KEY=${DEMISTO_API_KEY}" ${product_version}
 else
     echo "Starting Container ${test_container_name} from Image ${test_version}"
 
