@@ -602,6 +602,7 @@ def event_test(body,say):
     channel = body['event']['channel']
     bot_handle = body['authorizations'][0]['user_id']
     text = text.replace(f"<@{bot_handle}>", "")  # Remove the bot handle from
+    print(body)
     # print('Bot = ' + bot_handle + ' Channel=' + channel + ' Text=' + text + ' from User=' + user)
 
     if is_command(text):

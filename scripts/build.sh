@@ -7,5 +7,4 @@ if [[ "$1" = "prod" ]]; then
 else
     echo "Building Container ${test_version}"
     docker build -t ${test_version} --target development-env .
-    docker logs ${test_container_name}
 fi
