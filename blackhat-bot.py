@@ -260,7 +260,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
                                                 "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
         incident_id = str(incident_dict['id']).strip()
-        incident_link = demisto_url + "/#/Details/" + incident_id
+        incident_link = demisto_url + "/#/WarRoom/" + incident_id
         json_string = {
             "channel": channel,
             "text": f"New Incident created by <@{user}>",
@@ -319,7 +319,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
                                        SEVERITY_DICT['Low'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
                                                 "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
-        incident_link = f"{demisto_url}/#/Details/{str(incident_dict['id'])}"
+        incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
         json_string = {
             "channel": channel,
             "text": f"New Incident created by <@{user}>",
@@ -328,7 +328,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "New XSOAR Incident #" + incident_dict['id'],
+                        "text": "New XSOAR Incident #" + str(incident_dict['id']),
                         "emoji": True
                     }
                 },
@@ -337,7 +337,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
                     "fields": [
                         {
                             "type": "mrkdwn",
-                            "text": "*Type:*\n" + incident_dict['type']
+                            "text": "*Type:*\n" + str(incident_dict['type'])
                         },
                         {
                             "type": "mrkdwn",
@@ -377,24 +377,26 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
         incident_details = ""
         if "url" in incident:
             url_list = clean_urls(incident['url'])
-            incident_details = incident_details + "url=" + url_list + "\n"
+            incident_details = incident_details + "url=" + str(url_list) + "\n"
         if "domain" in incident:
             dom_list = clean_domains(incident['domain'])
-            incident_details = incident_details + "domain=" + dom_list + "\n"
+            incident_details = incident_details + "domain=" + str(dom_list) + "\n"
         if "ip" in incident:
-            incident_details = incident_details + "ip=" + incident['ip'] + "\n"
+            incident_details = incident_details + "ip=" + str(incident['ip']) + "\n"
         if "email" in incident:
             email_list = clean_emails(incident['email'])
-            incident_details = incident_details + email_list + "\n"
+            incident_details = incident_details + str(email_list) + "\n"
 
         if incident_details:
             incident_json = demisto.create_incident("Blackhat IOC Check", "", "Enrich IOC " + incident_details[0:20],
                                                     SEVERITY_DICT['Low'],
                                                     incident_details +
                                                     "slack_handle=" + user +
-                                                    "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
+                                                    "\nbot_handle=" + bot_handle + "\nchannel_name=" + channel_name +
+                                                    "\nslack_channel=" + channel)
+            print(str(incident_json))
             incident_dict = return_dict(incident_json)
-            incident_link = f"{demisto_url}/#/Details/{str(incident_dict['id'])}"
+            incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
             json_string = {
                 "channel": channel,
                 "text": f"New Incident created by <@{user}>",
@@ -477,7 +479,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
                                                 "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
         incident_id = str(incident_dict['id']).strip()
-        incident_link = demisto_url + "/#/Details/" + incident_id
+        incident_link = demisto_url + "/#/WarRoom/" + incident_id
         json_string = {
             "channel": channel,
             "text": f"New Incident created by <@{user}>",
