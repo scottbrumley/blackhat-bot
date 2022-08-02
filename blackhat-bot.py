@@ -179,16 +179,15 @@ class DemistoConnect:
             "severity": incident_severity,
             "owner": incident_owner
             }
+        print(data)
         try:
             response_api = requests.post(self.url + "/incident", headers=self.headers, data=json.dumps(data), verify=ssl_verify)
         except Exception as e:
             print("Error Occurred. " + str(e.args))
             return str(e.args)
         else:
-            if response_api.status_code == 201:
+                print(response_api)
                 return response_api.text
-            else:
-                return response_api.status_code
 
     def search_incident(self, data):
         try:
@@ -394,60 +393,62 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
                                                     "slack_handle=" + user +
                                                     "\nbot_handle=" + bot_handle + "\nchannel_name=" + channel_name +
                                                     "\nslack_channel=" + channel)
-            print(str(incident_json))
-            incident_dict = return_dict(incident_json)
-            incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
-            json_string = {
-                "channel": channel,
-                "text": f"New Incident created by <@{user}>",
-                "blocks": [
-                    {
-                        "type": "header",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "New XSOAR Incident #" + incident_dict['id'],
-                            "emoji": True
-                        }
-                    },
-                    {
-                        "type": "section",
-                        "fields": [
-                            {
-                                "type": "mrkdwn",
-                                "text": "*Type:*\n" + incident_dict['type']
-                            },
-                            {
-                                "type": "mrkdwn",
-                                "text": f"*Created by:*\n<@{user}>"
+            if len(str(incident_json)) > 0:
+                incident_dict = return_dict(incident_json)
+                incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
+                json_string = {
+                    "channel": channel,
+                    "text": f"New Incident created by <@{user}>",
+                    "blocks": [
+                        {
+                            "type": "header",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "New XSOAR Incident #" + incident_dict['id'],
+                                "emoji": True
                             }
-                        ]
-                    },
-                    {
-                        "type": "section",
-                        "fields": [
-                            {
-                                "type": "mrkdwn",
-                                "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
-                            }
-                        ]
-                    },
-                    {
-                        "type": "actions",
-                        "block_id": "actionblock789",
-                        "elements": [
-                            {
-                                "type": "button",
-                                "action_id": "openincident",
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Open Incident"
+                        },
+                        {
+                            "type": "section",
+                            "fields": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*Type:*\n" + incident_dict['type']
                                 },
-                                "url": incident_link
-                            }
-                        ]
-                    }
-                ]
-            }
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Created by:*\n<@{user}>"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "section",
+                            "fields": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                                }
+                            ]
+                        },
+                        {
+                            "type": "actions",
+                            "block_id": "actionblock789",
+                            "elements": [
+                                {
+                                    "type": "button",
+                                    "action_id": "openincident",
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Open Incident"
+                                    },
+                                    "url": incident_link
+                                }
+                            ]
+                        }
+                    ]
+                }
+            else:
+                json_string = "No Data"
         else:
             json_string = "Invalid IOC"
         return json_string
