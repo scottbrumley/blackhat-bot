@@ -179,7 +179,6 @@ class DemistoConnect:
             "severity": incident_severity,
             "owner": incident_owner
             }
-        print(data)
         try:
             response_api = requests.post(self.url + "/incident", headers=self.headers, data=json.dumps(data), verify=ssl_verify)
         except Exception as e:
