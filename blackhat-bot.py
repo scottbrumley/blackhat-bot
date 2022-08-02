@@ -185,7 +185,6 @@ class DemistoConnect:
             print("Error Occurred. " + str(e.args))
             return str(e.args)
         else:
-                print(response_api)
                 return response_api.text
 
     def search_incident(self, data):
