@@ -69,7 +69,9 @@ command_list = {
 
 
 def human_date_time(date_time_str):
-    time_zone = ""
+    """
+    print(date_time_str)
+    time_zone = []
     # Get Date
     date_time = date_time_str.split("T")
     date_str = str(date_time[0])
@@ -80,6 +82,7 @@ def human_date_time(date_time_str):
     elif "+" in date_time[1]:
         time_zone = date_time[1].split("+")
 
+    print(time_zone)
     time_str = str(time_zone[0])
 
     # Get Time Zone
@@ -87,8 +90,9 @@ def human_date_time(date_time_str):
     zone_str = str(get_zone[1])
 
     new_time = date_str + " " + time_str.split(".")[0] + " TZ= " + zone_str
+    """
 
-    return new_time
+    return str(date_time_str)
 
 
 def is_email(email):
@@ -234,7 +238,7 @@ def build_description_string():
     return my_args
 
 
-def run_command(command_text, url, api_key, channel, user, bot_handle):
+def run_command(command_text, url, api_key, channel, user, bot_handle, channel_name):
     demisto = DemistoConnect(url,api_key)
     command_text = command_text.strip().replace('!', '')
     command_line = command_text.split(" ")
@@ -252,7 +256,8 @@ def run_command(command_text, url, api_key, channel, user, bot_handle):
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat MAC", "", "Block Mac " + incident['mac'],
                                        SEVERITY_DICT['High'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
-                                                "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
+                                                "\nbot_handle=" + bot_handle + "\nchannel_name=" + channel_name +
+                                                "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
         incident_id = str(incident_dict['id']).strip()
         incident_link = demisto_url + "/#/Details/" + incident_id
@@ -602,12 +607,14 @@ def event_test(body,say):
     channel = body['event']['channel']
     bot_handle = body['authorizations'][0]['user_id']
     text = text.replace(f"<@{bot_handle}>", "")  # Remove the bot handle from
-    print(body)
+    channel_info = app.client.conversations_info(channel=channel)
+    channel_name = channel_info['channel']['name']
+
     # print('Bot = ' + bot_handle + ' Channel=' + channel + ' Text=' + text + ' from User=' + user)
 
     if is_command(text):
         say(f"Your wish is my command, <@{user}>!")
-        command_response = run_command(text,demisto_url,demisto_api_key, channel, user, bot_handle)
+        command_response = run_command(text,demisto_url,demisto_api_key, channel, user, bot_handle, channel_name)
         say(command_response)
     else:
         say(f"Hi there, <@{user}>!\n  If you need help use the !help command.")
