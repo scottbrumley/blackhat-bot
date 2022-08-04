@@ -425,6 +425,10 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
                                 {
                                     "type": "mrkdwn",
                                     "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": incident_link
                                 }
                             ]
                         },
