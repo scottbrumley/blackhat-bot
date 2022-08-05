@@ -177,7 +177,8 @@ class DemistoConnect:
             "name": incident_name,
             "details": incident_detail,
             "severity": incident_severity,
-            "owner": incident_owner
+            "owner": incident_owner,
+            "createInvestigation": True
             }
         try:
             response_api = requests.post(self.url + "/incident", headers=self.headers, data=json.dumps(data), verify=ssl_verify)
@@ -386,7 +387,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
 
         if incident_details:
             incident_json = demisto.create_incident("Blackhat IOC Check", "", "Enrich IOC " + incident_details[0:20],
-                                                    SEVERITY_DICT['Low'],
+                                                    SEVERITY_DICT['High'],
                                                     incident_details +
                                                     "slack_handle=" + user +
                                                     "\nbot_handle=" + bot_handle + "\nchannel_name=" + channel_name +
@@ -465,7 +466,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
         return_str = ""
 
         for incident in incident_dict['data']:
-            incident_link = f"#{incident['id']} - {incident['name']}     *Status:* {incident['runStatus']}\n{demisto_url}:443/#/WarRoom/{str(incident['id'])}\n"
+            incident_link = f"#{incident['id']} - {incident['name']}     *Status:* {incident['runStatus']}\n{demisto_url}/#/WarRoom/{str(incident['id'])}\n"
             return_str = return_str + incident_link
 
         return return_str
@@ -474,7 +475,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
         incident_details = ""
         if "email" in incident:
             email_list = clean_emails(incident['email'])
-            incident_details = incident_details + email_list + "\n"
+            incident_details = incident_details + "email=" + email_list + "\n"
         incident_json = demisto.create_incident("Blackhat XSOAR Invite", "", "XSOAR Invite " + incident_details[0:20],
                                                 SEVERITY_DICT['Low'],
                                                 incident_details +
