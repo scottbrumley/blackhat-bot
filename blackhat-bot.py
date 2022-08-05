@@ -387,7 +387,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
 
         if incident_details:
             incident_json = demisto.create_incident("Blackhat IOC Check", "", "Enrich IOC " + incident_details[0:20],
-                                                    SEVERITY_DICT['High'],
+                                                    SEVERITY_DICT['Low'],
                                                     incident_details +
                                                     "slack_handle=" + user +
                                                     "\nbot_handle=" + bot_handle + "\nchannel_name=" + channel_name +
