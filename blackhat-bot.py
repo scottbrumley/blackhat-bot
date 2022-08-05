@@ -50,7 +50,7 @@ command_list = {
         {
             "cmd": "check_ioc",
             "args": "url=<list of urls>,\n\t\t\t\t\tip=<list of IPs>,\n\t\t\t\t\temail=<list of emails>,"
-                    "\n\t\t\t\t\tdomain=<list of domains>",
+                    "\n\t\t\t\t\tdomain=<list of domains>\n\t\t\t\t\trep=Unknown|Good|Suspicious|Bad\n",
             "description": "Check & Enrich IOCs\n\n\n\n\n\n\n\n"
         },
     "my_incidents":
