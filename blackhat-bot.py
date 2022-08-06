@@ -256,7 +256,7 @@ def checkKey(dict, key):
     else:
         return False
 
-def run_command(command_text, url, api_key, channel, user, bot_handle, channel_name):
+def run_command(command_text, url, api_key, channel, user, bot_handle, channel_name, thread):
     demisto = DemistoConnect(url,api_key)
     command_text = command_text.strip().replace('!', '')
     command_line = command_text.split(" ")
@@ -488,6 +488,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
                                                         SEVERITY_DICT['Low'],
                                                         incident_details +
                                                         "slack_handle=" + user +
+                                                        "\nslack_thread=" + thread +
                                                         "\nbot_handle=" + bot_handle + "\nchannel_name=" + channel_name +
                                                         "\nslack_channel=" + channel)
                 if len(str(incident_json)) > 0:
@@ -710,19 +711,23 @@ def handle_message_events(body, logger):
 
 @app.event("app_mention")
 def event_test(body,say):
-    user = body['event']['user']
+    if checkKey(body['event'], 'user'):
+        user = body['event']['user']
+    else:
+        user = body['event']['bot_id']
     text = body['event']['text']
     channel = body['event']['channel']
     bot_handle = body['authorizations'][0]['user_id']
     text = text.replace(f"<@{bot_handle}>", "")  # Remove the bot handle from
     channel_info = app.client.conversations_info(channel=channel)
     channel_name = channel_info['channel']['name']
+    thread = body['event']['ts']
 
     # print('Bot = ' + bot_handle + ' Channel=' + channel + ' Text=' + text + ' from User=' + user)
 
     if is_command(text):
         say(f"Your wish is my command, <@{user}>!")
-        command_response = run_command(text,demisto_url,demisto_api_key, channel, user, bot_handle, channel_name)
+        command_response = run_command(text,demisto_url,demisto_api_key, channel, user, bot_handle, channel_name, thread)
         if command_response:
             say(command_response)
         else:
