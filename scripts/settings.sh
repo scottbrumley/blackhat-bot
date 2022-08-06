@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-product_version="sbrumley/blackhat:0.9"
+product_version="sbrumley/blackhat:1.0"
 test_version="sbrumley/blackhat:test.1"
 product_container_name="blackhat"
 test_container_name="blackhat-test"

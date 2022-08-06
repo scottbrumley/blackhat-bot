@@ -1,4 +1,5 @@
 import os
+import shlex
 import re
 import json
 import urllib3
@@ -40,6 +41,12 @@ command_list = {
         "args": "mac=MAC Address",
         "description": "Block by MAC in Firewalls\n"
     },
+    "firewall-request":
+        {
+            "cmd": "firewall-request",
+            "args": "option=change|outage|threat|other\n\tdetails=\"Request something Here.\"",
+            "description": "This will send an request to the firewall team for action.\n\n\n"
+        },
     "qos_mac":
     {
         "cmd": "qos_mac",
@@ -49,7 +56,7 @@ command_list = {
     "check_ioc":
         {
             "cmd": "check_ioc",
-            "args": "url=<list of urls>,\n\t\t\t\t\tip=<list of IPs>,\n\t\t\t\t\temail=<list of emails>,"
+            "args": "url=<list of urls>,\n\t\t\t\t\tip=<list of IPs>\n\t\t\t\t\temail=<list of emails>,"
                     "\n\t\t\t\t\tdomain=<list of domains>\n\t\t\t\t\trep=Unknown|Good|Suspicious|Bad\n",
             "description": "Check & Enrich IOCs\n\n\n\n\n\n\n\n"
         },
@@ -123,8 +130,9 @@ def clean_domains(dom_str):
     val_list = dom_str.split(",")
     for val in val_list:
         i = i + 1
-        domain_str = val.split("|")
-        ret_str = ret_str + domain_str[1].replace(">", "")
+        if "|" in val:
+            domain_str = val.split("|")
+            ret_str = ret_str + domain_str[1].replace(">", "")
         if i < len(val_list):
             ret_str = ret_str + ","
     return ret_str
@@ -210,11 +218,11 @@ def is_command(textmessage):
 
 
 def get_params(param_list):
-    param_dict = {}
-    for param in param_list:
-        if "=" in param:
-            key_val_pair = param.split("=")
-            param_dict[key_val_pair[0]] = key_val_pair[1]
+    if "\u201d" in param_list:
+        param_list = param_list.replace("\u201d", "\"")
+    if "\u201c" in param_list:
+        param_list = param_list.replace("\u201c", "\"")
+    param_dict = dict(token.split('=') for token in shlex.split(param_list))
     return param_dict
 
 
@@ -251,6 +259,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
             return_val = "XSOAR may not be Up. " + demisto_val
         return return_val
     elif command_line[0] == command_list["block_mac"]['cmd']:
+        command_line = command_text.strip().replace(command_list['block_mac']['cmd'] + " ", '')
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat MAC", "", "Block Mac " + incident['mac'],
                                        SEVERITY_DICT['High'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
@@ -312,6 +321,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
         }
         return json_string
     elif command_line[0] == command_list["qos_mac"]['cmd']:
+        command_line = command_text.strip().replace(command_list['qos_mac']['cmd'] + " ", '')
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat Qos", "", "Qos Mac " + incident['mac'],
                                        SEVERITY_DICT['Low'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
@@ -370,14 +380,77 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
             ]
         }
         return json_string
+    elif command_line[0] == command_list["firewall-request"]['cmd']:
+        command_line = command_text.strip().replace(command_list['firewall-request']['cmd'] + " ", '')
+        incident = get_params(command_line)
+        incident_json = demisto.create_incident("Blackhat Firewall Request", "", "Black Hat Firewall Request " + incident['option'],
+                                                SEVERITY_DICT['Low'], "option=" + incident['option'] + "\nslack_handle=" + user +
+                                                "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel +
+                                                "\n\nDetails:\n" + incident['details'])
+        incident_dict = return_dict(incident_json)
+        incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
+        json_string = {
+            "channel": channel,
+            "text": f"New Incident created by <@{user}>",
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "New XSOAR Incident #" + str(incident_dict['id']),
+                        "emoji": True
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Type:*\n" + str(incident_dict['type'])
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Created by:*\n<@{user}>"
+                        }
+                    ]
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "block_id": "actionblock789",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "action_id": "openincident",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Open Incident"
+                            },
+                            "url": incident_link
+                        }
+                    ]
+                }
+            ]
+        }
+        return json_string
     elif command_line[0] == command_list["check_ioc"]['cmd']:
+        command_line = command_text.strip().replace(command_list['check_ioc']['cmd'] + " ", '')
         incident = get_params(command_line)
         incident_details = ""
         if "url" in incident:
             url_list = clean_urls(incident['url'])
             incident_details = incident_details + "url=" + str(url_list) + "\n"
         if "domain" in incident:
-            dom_list = clean_domains(incident['domain'])
+            # dom_list = clean_domains(incident['domain'])
+            dom_list = incident['domain']
             incident_details = incident_details + "domain=" + str(dom_list) + "\n"
         if "ip" in incident:
             incident_details = incident_details + "ip=" + str(incident['ip']) + "\n"
@@ -471,6 +544,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
 
         return return_str
     elif command_line[0] == command_list["xsoar_invite"]['cmd']:
+        command_line = command_text.strip().replace(command_list['xsoar_invite']['cmd'] + " ", '')
         incident = get_params(command_line)
         incident_details = ""
         if "email" in incident:
@@ -621,7 +695,10 @@ def event_test(body,say):
     if is_command(text):
         say(f"Your wish is my command, <@{user}>!")
         command_response = run_command(text,demisto_url,demisto_api_key, channel, user, bot_handle, channel_name)
-        say(command_response)
+        if command_response:
+            say(command_response)
+        else:
+            say("No Text in Response to channel=" + channel_name)
     else:
         say(f"Hi there, <@{user}>!\n  If you need help use the !help command.")
 
