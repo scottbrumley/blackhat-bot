@@ -38,45 +38,45 @@ command_list = {
     "xsoar_health":
         {
             "cmd": "xsoar_health",
-            "args": "",
+            "args": "n/a",
             "description": "Check That XSOAR is Up.\n"
         },
     "block_mac":
     {
         "cmd": "block_mac",
-        "args": "mac=MAC Address",
+        "args": "*mac*=MAC Address",
         "description": "Block by MAC in Firewalls\n"
     },
     "firewall_request":
         {
             "cmd": "firewall_request",
-            "args": "option=change|outage|threat|other\n\tdetails=\"Request something Here.\"",
-            "description": "This will send an request to the firewall team for action.\n\n\n"
+            "args": "*option*=change|outage|threat|other\n*details*=\"Request something Here.\"",
+            "description": "Send request to the firewall team."
         },
     "qos_mac":
     {
         "cmd": "qos_mac",
-        "args": "mac=MAC Address",
+        "args": "*mac*=MAC Address",
         "description": "Set QoS by MAC in Firewalls\n"
     },
     "check_ioc":
         {
             "cmd": "check_ioc",
-            "args": "url=<list of urls>,\n\t\t\t\t\tip=<list of IPs>\n\t\t\t\t\temail=<list of emails>,"
-                    "\n\t\t\t\t\tdomain=<list of domains>\n\t\t\t\t\trep=Unknown|Good|Suspicious|Bad\n",
-            "description": "Check & Enrich IOCs\n\n\n\n\n\n\n\n"
+            "args": "*url*=<list of urls>\n*ip*=<list of IPs>\n*email*=<list of emails>"
+                    "\n*domain*=<list of domains>\nrep=Unknown|Good|Suspicious|Bad\n",
+            "description": "Check & Enrich IOCs\n"
         },
     "my_incidents":
         {
             "cmd": "my_incidents",
-            "args": "",
+            "args": "n/a",
             "description": "List Your Incidents\n"
         },
     "xsoar_invite":
         {
             "cmd": "xsoar_invite",
-            "args": "email=<preferred email address>",
-            "description": "Get sent an invite to use XSOAR for Case Management and Automation.\n"
+            "args": "*email*=<preferred email address>",
+            "description": "Invite yourself to XSOAR.\n"
         }
 }
 
@@ -236,18 +236,55 @@ def return_dict(json_string):
     return json.loads(json_string)
 
 
-def build_command_string():
-    my_commands = ""
-    for command in command_list:
-        my_commands = my_commands + "!" + command_list[command]['cmd'] + " " + command_list[command]['args'] + "\n\n"
-    return my_commands
+def append_section(dict_obj, key, value):
+    if key in dict_obj:
+        if not isinstance(dict_obj[key], list):
+            dict_obj[key] = [[dict_obj[key]]]
+
+        dict_obj[key].append(value)
+    else:
+        dict_obj[key] = value
+    return dict_obj
 
 
-def build_description_string():
-    my_args = ""
+def create_menu(json_string):
+    divider_dict = {
+                    "type": "divider"
+                   }
+
     for command in command_list:
-        my_args = my_args + command_list[command]['description'] + "\n"
-    return my_args
+        section_dict = {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": "*Description:*"
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": str(command_list[command]['description'])
+                            },
+                            {
+                                "type": "plain_text",
+                                "text": " "
+                            },
+                            {
+                                "type": "plain_text",
+                                "text": " "
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": "*!" + str(command_list[command]['cmd']) + "*"
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": " " + str(command_list[command]['args'])
+                            }
+                        ]
+                       }
+        append_section(json_string, 'blocks', section_dict)
+        append_section(json_string, 'blocks', divider_dict)
+    return json_string
 
 
 def checkKey(dict, key):
@@ -255,6 +292,7 @@ def checkKey(dict, key):
         return True
     else:
         return False
+
 
 def run_command(command_text, url, api_key, channel, user, bot_handle, channel_name, thread):
     demisto = DemistoConnect(url,api_key)
@@ -648,7 +686,7 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "List of Commands",
+                        "text": "List of Commands\n",
                         "emoji": True
                     }
                 },
@@ -657,17 +695,20 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
                     "fields": [
                         {
                             "type": "mrkdwn",
-                            "text": "*Command:*\n" + build_command_string()
+                            "text": "*Command:*"
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Description:*\n" + build_description_string()
+                            "text": "*Parameters:*"
                         }
                     ]
+                },
+                {
+                    "type": "divider"
                 }
             ]
         }
-
+        json_string = create_menu(json_string)
         return json_string
     else:
         return "Command Not Found!"
