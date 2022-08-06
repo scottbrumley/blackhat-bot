@@ -14,6 +14,12 @@ SEVERITY_DICT = {
     'High': 3,
     'Critical': 4
 }
+SCORE_DICT = {
+    'Unknown': 0,
+    'Good': 1,
+    'Suspicious': 2,
+    'Bad': 3
+}
 
 ssl_verify = True
 
@@ -41,9 +47,9 @@ command_list = {
         "args": "mac=MAC Address",
         "description": "Block by MAC in Firewalls\n"
     },
-    "firewall-request":
+    "firewall_request":
         {
-            "cmd": "firewall-request",
+            "cmd": "firewall_request",
             "args": "option=change|outage|threat|other\n\tdetails=\"Request something Here.\"",
             "description": "This will send an request to the firewall team for action.\n\n\n"
         },
@@ -244,6 +250,12 @@ def build_description_string():
     return my_args
 
 
+def checkKey(dict, key):
+    if key in dict.keys():
+        return True
+    else:
+        return False
+
 def run_command(command_text, url, api_key, channel, user, bot_handle, channel_name):
     demisto = DemistoConnect(url,api_key)
     command_text = command_text.strip().replace('!', '')
@@ -380,154 +392,170 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
             ]
         }
         return json_string
-    elif command_line[0] == command_list["firewall-request"]['cmd']:
-        command_line = command_text.strip().replace(command_list['firewall-request']['cmd'] + " ", '')
-        incident = get_params(command_line)
-        incident_json = demisto.create_incident("Blackhat Firewall Request", "", "Black Hat Firewall Request " + incident['option'],
-                                                SEVERITY_DICT['Low'], "option=" + incident['option'] + "\nslack_handle=" + user +
-                                                "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel +
-                                                "\n\nDetails:\n" + incident['details'])
-        incident_dict = return_dict(incident_json)
-        incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
-        json_string = {
-            "channel": channel,
-            "text": f"New Incident created by <@{user}>",
-            "blocks": [
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "New XSOAR Incident #" + str(incident_dict['id']),
-                        "emoji": True
-                    }
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "*Type:*\n" + str(incident_dict['type'])
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Created by:*\n<@{user}>"
+    elif command_line[0] == command_list["firewall_request"]['cmd']:
+        if len(command_line) > 2:
+            command_line = command_text.strip().replace(command_list['firewall_request']['cmd'] + " ", '')
+            incident = get_params(command_line)
+            incident_json = demisto.create_incident("Blackhat Firewall Request", "", "Black Hat Firewall Request " + incident['option'],
+                                                    SEVERITY_DICT['Low'], "option=" + incident['option'] + "\nslack_handle=" + user +
+                                                    "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel +
+                                                    "\n\nDetails:\n" + incident['details'])
+            incident_dict = return_dict(incident_json)
+            incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
+            json_string = {
+                "channel": channel,
+                "text": f"New Incident created by <@{user}>",
+                "blocks": [
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "New XSOAR Incident #" + str(incident_dict['id']),
+                            "emoji": True
                         }
-                    ]
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
-                        }
-                    ]
-                },
-                {
-                    "type": "actions",
-                    "block_id": "actionblock789",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "action_id": "openincident",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "Open Incident"
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": "*Type:*\n" + str(incident_dict['type'])
                             },
-                            "url": incident_link
-                        }
-                    ]
-                }
-            ]
-        }
-        return json_string
-    elif command_line[0] == command_list["check_ioc"]['cmd']:
-        command_line = command_text.strip().replace(command_list['check_ioc']['cmd'] + " ", '')
-        incident = get_params(command_line)
-        incident_details = ""
-        if "url" in incident:
-            url_list = clean_urls(incident['url'])
-            incident_details = incident_details + "url=" + str(url_list) + "\n"
-        if "domain" in incident:
-            # dom_list = clean_domains(incident['domain'])
-            dom_list = incident['domain']
-            incident_details = incident_details + "domain=" + str(dom_list) + "\n"
-        if "ip" in incident:
-            incident_details = incident_details + "ip=" + str(incident['ip']) + "\n"
-        if "email" in incident:
-            email_list = clean_emails(incident['email'])
-            incident_details = incident_details + str(email_list) + "\n"
-
-        if incident_details:
-            incident_json = demisto.create_incident("Blackhat IOC Check", "", "Enrich IOC " + incident_details[0:20],
-                                                    SEVERITY_DICT['Low'],
-                                                    incident_details +
-                                                    "slack_handle=" + user +
-                                                    "\nbot_handle=" + bot_handle + "\nchannel_name=" + channel_name +
-                                                    "\nslack_channel=" + channel)
-            if len(str(incident_json)) > 0:
-                incident_dict = return_dict(incident_json)
-                incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
-                json_string = {
-                    "channel": channel,
-                    "text": f"New Incident created by <@{user}>",
-                    "blocks": [
-                        {
-                            "type": "header",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "New XSOAR Incident #" + incident_dict['id'],
-                                "emoji": True
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Created by:*\n<@{user}>"
                             }
-                        },
-                        {
-                            "type": "section",
-                            "fields": [
-                                {
-                                    "type": "mrkdwn",
-                                    "text": "*Type:*\n" + incident_dict['type']
+                        ]
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                            }
+                        ]
+                    },
+                    {
+                        "type": "actions",
+                        "block_id": "actionblock789",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "action_id": "openincident",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Open Incident"
                                 },
-                                {
-                                    "type": "mrkdwn",
-                                    "text": f"*Created by:*\n<@{user}>"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "section",
-                            "fields": [
-                                {
-                                    "type": "mrkdwn",
-                                    "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
-                                },
-                                {
-                                    "type": "mrkdwn",
-                                    "text": incident_link
-                                }
-                            ]
-                        },
-                        {
-                            "type": "actions",
-                            "block_id": "actionblock789",
-                            "elements": [
-                                {
-                                    "type": "button",
-                                    "action_id": "openincident",
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "Open Incident"
-                                    },
-                                    "url": incident_link
-                                }
-                            ]
-                        }
-                    ]
-                }
-            else:
-                json_string = "No Data"
+                                "url": incident_link
+                            }
+                        ]
+                    }
+                ]
+            }
+            return json_string
         else:
-            json_string = "Invalid IOC"
-        return json_string
+            return "This command requires parameters. " + command_list['firewall_request']['args']
+    elif command_line[0] == command_list["check_ioc"]['cmd']:
+        if len(command_line) > 1:
+            indicator_set = False
+            command_line = command_text.strip().replace(command_list['check_ioc']['cmd'] + " ", '')
+            incident = get_params(command_line)
+            incident_details = ""
+            if "url" in incident:
+                url_list = clean_urls(incident['url'])
+                incident_details = incident_details + "url=" + str(url_list) + "\n"
+                indicator_set = True
+            if "domain" in incident:
+                # dom_list = clean_domains(incident['domain'])
+                dom_list = incident['domain']
+                incident_details = incident_details + "domain=" + str(dom_list) + "\n"
+                indicator_set = True
+            if "ip" in incident:
+                incident_details = incident_details + "ip=" + str(incident['ip']) + "\n"
+                indicator_set = True
+            if "email" in incident:
+                email_list = clean_emails(incident['email'])
+                incident_details = incident_details + str(email_list) + "\n"
+                indicator_set = True
+            if "rep" in incident:
+                incident_details = incident_details + "reputation=" + str(incident['rep']) + "\n"
+                if not checkKey(SCORE_DICT, incident['rep']):
+                    return "Reputation is case sensitive. " + command_list['check_ioc']['args']
+
+            if incident_details and indicator_set:
+                incident_json = demisto.create_incident("Blackhat IOC Check", "", "Enrich IOC " + incident_details[0:20],
+                                                        SEVERITY_DICT['Low'],
+                                                        incident_details +
+                                                        "slack_handle=" + user +
+                                                        "\nbot_handle=" + bot_handle + "\nchannel_name=" + channel_name +
+                                                        "\nslack_channel=" + channel)
+                if len(str(incident_json)) > 0:
+                    incident_dict = return_dict(incident_json)
+                    incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
+                    json_string = {
+                        "channel": channel,
+                        "text": f"New Incident created by <@{user}>",
+                        "blocks": [
+                            {
+                                "type": "header",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "New XSOAR Incident #" + incident_dict['id'],
+                                    "emoji": True
+                                }
+                            },
+                            {
+                                "type": "section",
+                                "fields": [
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": "*Type:*\n" + incident_dict['type']
+                                    },
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": f"*Created by:*\n<@{user}>"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "section",
+                                "fields": [
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                                    },
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": incident_link
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "actions",
+                                "block_id": "actionblock789",
+                                "elements": [
+                                    {
+                                        "type": "button",
+                                        "action_id": "openincident",
+                                        "text": {
+                                            "type": "plain_text",
+                                            "text": "Open Incident"
+                                        },
+                                        "url": incident_link
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                else:
+                    json_string = "No Data"
+            else:
+                json_string = "Invalid IOC.  You need an IOC"
+            return json_string
+
+        else:
+            return "This command requires parameters. " + command_list['check_ioc']['args']
     elif command_line[0] == command_list["my_incidents"]['cmd']:
         search_str = {
             "filter": {
