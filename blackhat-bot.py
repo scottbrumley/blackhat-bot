@@ -47,6 +47,12 @@ command_list = {
         "args": "*mac*=MAC Address",
         "description": "Block by MAC in Firewalls\n"
     },
+    "wireless_client_lookup":
+        {
+            "cmd": "wireless_client_lookup",
+            "args": "*mac*=MAC Address",
+            "description": "Search For Wireless Clients by MAC\n"
+        },
     "firewall_request":
         {
             "cmd": "firewall_request",
@@ -375,6 +381,66 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat Qos", "", "Qos Mac " + incident['mac'],
                                        SEVERITY_DICT['Low'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
+                                                "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
+        incident_dict = return_dict(incident_json)
+        incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
+        json_string = {
+            "channel": channel,
+            "text": f"New Incident created by <@{user}>",
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "New XSOAR Incident #" + str(incident_dict['id']),
+                        "emoji": True
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Type:*\n" + str(incident_dict['type'])
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Created by:*\n<@{user}>"
+                        }
+                    ]
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "block_id": "actionblock789",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "action_id": "openincident",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Open Incident"
+                            },
+                            "url": incident_link
+                        }
+                    ]
+                }
+            ]
+        }
+        return json_string
+    elif command_line[0] == command_list["wireless_client_lookup"]['cmd']:
+        command_line = command_text.strip().replace(command_list["wireless_client_lookup"]["cmd"] + " ", '')
+        incident = get_params(command_line)
+        incident_json = demisto.create_incident("Blackhat-wireless-client-lookup", "", "Wireless Search " + incident['mac'],
+                                                SEVERITY_DICT['Low'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
                                                 "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
         incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
