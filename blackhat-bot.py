@@ -42,11 +42,17 @@ command_list = {
             "description": "Check That XSOAR is Up.\n"
         },
     "block_mac":
-    {
-        "cmd": "block_mac",
-        "args": "*mac*=MAC Address",
-        "description": "Block by MAC in Firewalls\n"
-    },
+        {
+            "cmd": "block_mac",
+            "args": "*mac*=MAC Address",
+            "description": "Block by MAC in Firewalls\n"
+        },
+    "block_ip":
+        {
+            "cmd": "block_ip",
+            "args": "*ip*=IP Address",
+            "description": "Block by IP in Firewalls\n"
+        },
     "wireless_client_lookup":
         {
             "cmd": "wireless_client_lookup",
@@ -60,11 +66,11 @@ command_list = {
             "description": "Send request to the firewall team."
         },
     "qos_mac":
-    {
-        "cmd": "qos_mac",
-        "args": "*mac*=MAC Address",
-        "description": "Set QoS by MAC in Firewalls\n"
-    },
+        {
+            "cmd": "qos_mac",
+            "args": "*mac*=MAC Address",
+            "description": "Set QoS by MAC in Firewalls\n"
+        },
     "check_ioc":
         {
             "cmd": "check_ioc",
@@ -319,6 +325,68 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
         incident = get_params(command_line)
         incident_json = demisto.create_incident("Blackhat MAC", "", "Block Mac " + incident['mac'],
                                        SEVERITY_DICT['High'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
+                                                "\nbot_handle=" + bot_handle + "\nchannel_name=" + channel_name +
+                                                "\nslack_channel=" + channel)
+        incident_dict = return_dict(incident_json)
+        incident_id = str(incident_dict['id']).strip()
+        incident_link = demisto_url + "/#/WarRoom/" + incident_id
+        json_string = {
+            "channel": channel,
+            "text": f"New Incident created by <@{user}>",
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "New XSOAR Incident #" + incident_dict['id'],
+                        "emoji": True
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Type:*\n" + incident_dict['type']
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Created by:*\n<@{user}>"
+                        }
+                    ]
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "block_id": "actionblock789",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "action_id": "openincident",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Open Incident"
+                            },
+                            "url": incident_link
+                        }
+                    ]
+                }
+            ]
+        }
+        return json_string
+    elif command_line[0] == command_list["block_ip"]['cmd']:
+        command_line = command_text.strip().replace(command_list['block_ip']['cmd'] + " ", '')
+        incident = get_params(command_line)
+        incident_json = demisto.create_incident("Blackhat IP", "", "Block IP " + incident['ip'],
+                                                SEVERITY_DICT['High'], "ip=" + incident['ip'] + "\nslack_handle=" + user +
                                                 "\nbot_handle=" + bot_handle + "\nchannel_name=" + channel_name +
                                                 "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
