@@ -227,15 +227,16 @@ class DemistoConnect:
                 return response_api.status_code
 
 
-def is_command(textmessage):
-    textmessage = textmessage.strip()
-    if textmessage[:1] == "!":
+def is_command(text_message):
+    text_message = text_message.strip()
+    if text_message[:1] == "!":
         return True
     else:
         return False
 
 
 def get_params(param_list):
+    param_list = re.sub('\s*=\s*', "=", param_list)
     if "\u201d" in param_list:
         param_list = param_list.replace("\u201d", "\"")
     if "\u201c" in param_list:
