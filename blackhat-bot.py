@@ -50,7 +50,7 @@ command_list = {
     "wireless_client_lookup":
         {
             "cmd": "wireless_client_lookup",
-            "args": "*mac*=MAC Address",
+            "args": "*mac*=MAC Address\n*ip*=IP Address",
             "description": "Search For Wireless Clients by MAC\n"
         },
     "firewall_request":
@@ -439,9 +439,18 @@ def run_command(command_text, url, api_key, channel, user, bot_handle, channel_n
     elif command_line[0] == command_list["wireless_client_lookup"]['cmd']:
         command_line = command_text.strip().replace(command_list["wireless_client_lookup"]["cmd"] + " ", '')
         incident = get_params(command_line)
-        incident_json = demisto.create_incident("Blackhat-wireless-client-lookup", "", "Wireless Search " + incident['mac'],
-                                                SEVERITY_DICT['Low'], "mac=" + incident['mac'] + "\nslack_handle=" + user +
-                                                "\nbot_handle=" + bot_handle + "\nslack_channel=" + channel)
+        incident_details = ""
+        if "mac" in incident:
+            mac_list = clean_urls(incident['mac'])
+            incident_details = incident_details + "mac=" + str(mac_list) + "\n"
+        if "ip" in incident:
+            ip_list = clean_urls(incident['ip'])
+            incident_details = incident_details + "ip=" + str(ip_list) + "\n"
+
+        incident_json = demisto.create_incident("Blackhat-wireless-client-lookup", "", "Wireless Search " +
+                                                incident_details, SEVERITY_DICT['Low'], incident_details +
+                                                "\nslack_handle=" + user + "\nbot_handle=" + bot_handle +
+                                                "\nslack_channel=" + channel)
         incident_dict = return_dict(incident_json)
         incident_link = f"{demisto_url}/#/WarRoom/{str(incident_dict['id'])}"
         json_string = {
